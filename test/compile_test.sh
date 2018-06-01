@@ -94,7 +94,7 @@ test_prince_successfully_installed_without_license() {
   assertCaptured "Running Prince installer..."
   assertCaptured "Installation complete."
 
-  . $BUILDPACK_HOME/export
+  . $BUILD_DIR/.profile.d/prince.sh
 
   assertTrue "prince --version"
   assertTrue "prince --version | grep 'Prince 11.4'"
