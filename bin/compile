@@ -24,7 +24,7 @@ if [ ! -f $ENV_DIR/PRINCE_TARBALL ]; then
 fi
 
 [ ! -d ${CACHE_DIR} ] && mkdir -p ${CACHE_DIR}
-pushd $CACHE_DIR
+pushd $CACHE_DIR >/dev/null
 
 PRINCE_TARBALL=$(cat $ENV_DIR/PRINCE_TARBALL)
 PRINCE_VERSION=$([[ $PRINCE_TARBALL =~ ([[:digit:]]+[-.])*[[:digit:]]+ ]] && echo "${BASH_REMATCH[0]}")
