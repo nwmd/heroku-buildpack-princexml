@@ -1,20 +1,80 @@
 #!/bin/bash
 
-PRINCE_VERSION="20180328"
-echo "-----> Installing PrinceXML $PRINCE_VERSION"
-[ -d .downloads ] || mkdir .downloads
-(cd .downloads; [ -d "prince-$PRINCE_VERSION-linux-amd64-static" ] ||
-  curl -s http://www.princexml.com/download/prince-$PRINCE_VERSION-linux-generic-x86_64.tar.gz | tar xzf -)
+# Fail immediately on non-zero exit code.
+set -e
 
-if [ -f $3/PRINCE_LICENSE ]; then
-  echo "       Configuring license file"
-  cp $3/PRINCE_LICENSE ./.downloads/prince-$PRINCE_VERSION-linux-generic-x86_64/lib/prince/license/license.dat
-else
-  echo "       No license found"
+# Fail immediately on non-zero exit code within a pipeline.
+set -o pipefail
+
+# Fail on undeclared variables.
+set -u
+
+BUILD_DIR=${1:-}
+CACHE_DIR=${2:-}
+ENV_DIR=${3:-}
+BP_DIR=$(cd $(dirname ${0:-}); cd ..; pwd)
+INSTALL_DIR=$BUILD_DIR/.princexml
+
+source $BP_DIR/lib/formatting.sh
+
+if [ ! -f $ENV_DIR/PRINCE_TARBALL ]; then
+  error "Environment variable PRINCE_TARBALL was not set"
+  info 'Try `heroku config:add PRINCE_TARBALL=<tarball-url>`, or use the Web UI'
+  exit 1
 fi
 
-echo $1 | ./.downloads/prince-$PRINCE_VERSION-linux-generic-x86_64/install.sh
-cat >$1/bin/prince <<EOF
-#!/bin/sh
-exec /app/lib/prince/bin/prince --prefix="/app/lib/prince" "\$@"
-EOF
+[ ! -d ${CACHE_DIR} ] && mkdir -p ${CACHE_DIR}
+pushd $CACHE_DIR
+
+PRINCE_TARBALL=$(cat $ENV_DIR/PRINCE_TARBALL)
+PRINCE_VERSION=$([[ $PRINCE_TARBALL =~ ([[:digit:]]+[-.])*[[:digit:]]+ ]] && echo "${BASH_REMATCH[0]}")
+CACHE_TARBALL="$CACHE_DIR/${PRINCE_TARBALL##*/}"
+
+topic "Installing Prince $PRINCE_VERSION"
+
+if [ ! -f ${CACHE_TARBALL} ]; then
+  if ! wget --spider $PRINCE_TARBALL 2>/dev/null; then
+    error "Could not download Prince"
+    info "Please check the URL in PRINCE_TARBALL and try again"
+    info "- $PRINCE_TARBALL"
+    exit 1
+  fi
+
+  topic "Downloading Prince tarball from ${PRINCE_TARBALL}..."
+  curl --silent --location ${PRINCE_TARBALL} > ${CACHE_TARBALL}
+  info "Downloaded."
+fi
+
+topic "Unpacking Prince tarball..."
+rm -rf prince-unpacked
+mkdir prince-unpacked
+
+if ! tar xzf "$CACHE_TARBALL" -C prince-unpacked --strip-components=1; then
+  error "Error unpacking downloaded tarball"
+  rm "$CACHE_TARBALL"
+  exit 1
+fi
+
+if [ ! -f prince-unpacked/install.sh ]; then
+  error "Unpacked tarball did not contain an install.sh script"
+  info "Are you sure this was a Prince tarball?"
+  rm "$CACHE_TARBALL"
+  exit 1
+fi
+info "Unpacked."
+
+topic "Configuring license file..."
+if [ -f $ENV_DIR/PRINCE_LICENSE ]; then
+  cp $ENV_DIR/PRINCE_LICENSE prince-unpacked/lib/prince/license/license.dat
+  info "Configured."
+else
+  info "Skipped."
+fi
+
+topic "Running Prince installer..."
+mkdir "$INSTALL_DIR"
+echo "$INSTALL_DIR" | prince-unpacked/install.sh | indent
+
+popd >/dev/null
+
+echo "export PATH=\"${INSTALL_DIR}/bin:\$PATH\"" > $BP_DIR/export
