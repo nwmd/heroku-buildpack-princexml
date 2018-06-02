@@ -17,9 +17,6 @@ INSTALL_DIR=$BUILD_DIR/.princexml
 
 source $BP_DIR/lib/formatting.sh
 
-info 'BUILD_DIR' $BUILD_DIR
-info 'INSTALL_DIR' $INSTALL_DIR
-
 if [ ! -f $ENV_DIR/PRINCE_TARBALL ]; then
   error "Environment variable PRINCE_TARBALL was not set"
   info 'Try `heroku config:add PRINCE_TARBALL=<tarball-url>`, or use the Web UI'
