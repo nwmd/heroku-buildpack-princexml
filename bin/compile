@@ -74,11 +74,10 @@ topic "Running Prince installer..."
 mkdir "$INSTALL_DIR"
 echo "$INSTALL_DIR" | "$CACHE_DIR/prince-unpacked/install.sh" | indent
 
-mkdir -p "$BUILD_DIR/bin"
+mkdir -p "$BUILD_DIR/.profile.d"
+echo "export PATH='$HOME/.princexml/bin:$PATH'" > "$BUILD_DIR/.profile.d/prince.sh"
 
-cat > "$BUILD_DIR/bin/prince" <<'EOF'
+cat > "$INSTALL_DIR/bin/prince" <<'EOF'
 #!/bin/sh
-exec "$HOME/.princexml/bin/prince" --prefix="$HOME/.princexml" "$@"
+exec "$HOME/.princexml/lib/prince/bin/prince" --prefix="$HOME/.princexml/lib/prince" "$@"
 EOF
-
-chmod +x "$BUILD_DIR/bin/prince"
