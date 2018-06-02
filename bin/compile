@@ -23,7 +23,7 @@ if [ ! -f $ENV_DIR/PRINCE_TARBALL ]; then
   exit 1
 fi
 
-[ ! -d ${CACHE_DIR} ] && mkdir -p ${CACHE_DIR}
+[ ! -d "${CACHE_DIR}" ] && mkdir -p "${CACHE_DIR}"
 
 PRINCE_TARBALL=$(cat $ENV_DIR/PRINCE_TARBALL)
 PRINCE_VERSION=$([[ $PRINCE_TARBALL =~ ([[:digit:]]+[-.])*[[:digit:]]+ ]] && echo "${BASH_REMATCH[0]}")
@@ -31,7 +31,7 @@ CACHE_TARBALL="$CACHE_DIR/${PRINCE_TARBALL##*/}"
 
 topic "Installing Prince $PRINCE_VERSION"
 
-if [ ! -f ${CACHE_TARBALL} ]; then
+if [ ! -f "${CACHE_TARBALL}" ]; then
   if ! wget --spider $PRINCE_TARBALL 2>/dev/null; then
     error "Could not download Prince"
     info "Please check the URL in PRINCE_TARBALL and try again"
@@ -40,13 +40,13 @@ if [ ! -f ${CACHE_TARBALL} ]; then
   fi
 
   topic "Downloading Prince tarball from ${PRINCE_TARBALL}..."
-  curl --silent --location ${PRINCE_TARBALL} > ${CACHE_TARBALL}
+  curl --silent --location ${PRINCE_TARBALL} > "${CACHE_TARBALL}"
   info "Downloaded."
 fi
 
 topic "Unpacking Prince tarball..."
-rm -rf prince-unpacked
-mkdir prince-unpacked
+rm -rf "$CACHE_DIR/prince-unpacked"
+mkdir "$CACHE_DIR/prince-unpacked"
 
 if ! tar xzf "$CACHE_TARBALL" -C "$CACHE_DIR/prince-unpacked" --strip-components=1; then
   error "Error unpacking downloaded tarball"
@@ -74,5 +74,11 @@ topic "Running Prince installer..."
 mkdir "$INSTALL_DIR"
 echo "$INSTALL_DIR" | "$CACHE_DIR/prince-unpacked/install.sh" | indent
 
-mkdir -p "$BUILD_DIR/.profile.d"
-echo "export PATH='$HOME/.princexml/bin:$PATH'" > "$BUILD_DIR/.profile.d/prince.sh"
+mkdir -p "$BUILD_DIR/bin"
+
+cat > "$BUILD_DIR/bin/prince" <<'EOF'
+#!/bin/sh
+exec "$HOME/.princexml/bin/prince" --prefix="$HOME/.princexml" "$@"
+EOF
+
+chmod +x "$BUILD_DIR/bin/prince"
