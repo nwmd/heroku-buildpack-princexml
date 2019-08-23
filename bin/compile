@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PRINCE_VERSION="12.2"
+PRINCE_VERSION="12.5"
 echo "-----> Installing PrinceXML $PRINCE_VERSION"
 [ -d .downloads ] || mkdir .downloads
 (cd .downloads; [ -d "prince-$PRINCE_VERSION-linux-amd64-static" ] ||
